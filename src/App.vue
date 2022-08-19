@@ -1,26 +1,17 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <post-comments />
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld.vue'
+import PostComments from './components/PostComments/PostComments.vue'
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    PostComments,
   }
 }
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
 </style>
