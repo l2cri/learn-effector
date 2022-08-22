@@ -1,56 +1,65 @@
 <template>
   <div>
+    <h2>With effect</h2>
     <ul>
-      <li v-for="task in tasks" :key="task.id">
+      <li :class="{classEditTask : task.id === newTask.id }" v-for="task in tasks" :key="task.id">
         <span @click="reviewTask(task.id)">{{ task.name }}</span>
         <button @click="deleteTask(task.id)">x</button>
       </li>
     </ul>
-    <input :ref="elInput" @input="inputEvt" :value="inputVal" />
-    <button v-if="editTaskId === 0" @click="addTask()">Add task</button>
-    <button v-else @click="editTask()">Edit task</button>
+    <input :value="newTask.name" @input="inputEvt" />
+    <button v-if="newTask.id === 0" @click="addTask">Add task</button>
+    <button v-else @click="editTask">Edit task</button>
   </div>
 </template>
 
 <script setup>
-import {createEvent, createStore, sample, forward} from 'effector'
-import {ref} from 'vue'
+import {reactive, ref } from 'vue'
+import {createStore, createEvent, sample, forward } from 'effector'
 
+const newTask = reactive({ name: '', id: 0 })
 const tasks = ref([])
-const inputVal = ref('')
-const elInput = ref(null)
-const editTaskId = ref(0)
 
-// effect add Task
+const addTask = createEvent()
+const inputEvt = createEvent()
+const newTaskSet = createEvent()
 const addTaskEvt = createEvent()
-const deleteTask = createEvent()
+const clearInput = createEvent()
 const reviewTask = createEvent()
 const editTask = createEvent()
+const editTaskEvt = createEvent()
+const deleteTask = createEvent()
 
-// input
-const inputEvt = createEvent()
-const inputSet = createEvent()
-const clearInput = createEvent()
-
-const $newTask = createStore('')
-    .on(inputEvt, (_, evt) => evt.target.value)
-    .on(inputSet, (_, value) => value)
+const $newTask = createStore({ name: '', id: 0 })
+    .on(inputEvt, (state, evt) => ({ ...state, name: evt.target.value }))
+    .on(newTaskSet, (state, { name, id }) => ({ ...state, name, id }))
     .reset(clearInput)
 
-$newTask.watch(data => {
-  inputVal.value = data
-})
-
-// add task
-const addTask = createEvent()
 const $tasks = createStore([])
-    .on(addTaskEvt, (tasks, task) => {
-      return [...tasks, { name: task, id: new Date().getTime() } ]
+    .on(addTaskEvt, (tasks, newTask) => {
+      return [...tasks, { name: newTask.name, id: new Date().getTime() } ]
     })
     .on(deleteTask, (tasks, taskId) => {
       return [...tasks].filter(task => task.id !== taskId)
     })
+    .on(editTaskEvt, (tasks, newTask) => {
+      const taskId = newTask.id
+      const copy = [ ...tasks]
+      for (let task of  copy) {
+        if (taskId === task.id ) {
+          task.id = newTask.id
+          task.name = newTask.name
+        }
+      }
 
+      return copy
+    })
+
+const resultEditTask = sample({
+  clock: editTask,
+  source: $newTask,
+  target: editTaskEvt,
+})
 
 const resultAddTask = sample({
   clock: addTask,
@@ -63,23 +72,42 @@ forward({
   to: clearInput
 })
 
-// find and set task to input
+forward({
+  from: resultEditTask,
+  to: clearInput
+})
+
+forward({
+  from: deleteTask,
+  to: clearInput
+})
+
+
+$newTask.watch(data => {
+  newTask.name = data.name
+  newTask.id = data.id
+})
+
+$tasks.watch(data => {
+  tasks.value = data
+})
+
 sample({
   clock: reviewTask,
   source: $tasks,
   fn: (sourceData, clockData) => {
     for (const task of sourceData) {
       if (clockData === task.id ) {
-        return task.name
+        return task
       }
     }
   },
-  target: inputSet
+  target: newTaskSet
 })
-
-$tasks.watch(data => {
-  console.log('data', data)
-  tasks.value = data
-})
-
 </script>
+
+<style scoped>
+.classEditTask {
+  border: 1px solid red;
+}
+</style>
